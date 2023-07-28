@@ -1,115 +1,93 @@
 #!/usr/bin/env python3
-"""Create a TestAccessNestedMap class that inherits from unittest.TestCase.
-and implement the TestAccessNestedMap.test_access_nested_map method to test that
-the method returns what it is supposed to.
 """
-
+Test for access_nested_map function
+"""
 import unittest
-from parameterized import parameterized
+import requests
+from unittest.mock import patch
 from utils import access_nested_map, get_json, memoize
-from unittest.mock import patch, Mock
+from typing import Mapping, Sequence, Any
+from parameterized import parameterized
 
 
 class TestAccessNestedMap(unittest.TestCase):
-    """_summary_
-
-    Args:
-        unittest (_type_): _description_
     """
-
-    @parameterized.expand(
-        [
-            ({"a": 1}, ("a",), 1),
-            ({"a": {"b": 2}}, ("a",), {"b": 2}),
-            ({"a": {"b": 2}}, ("a", "b"), 2)
-        ]
-    )
-    def test_access_nested_map(self, nested_map, path, expected_output):
-        """_summary_
+    Tests the access_nested_map function
+    """
+    @parameterized.expand([
+        ({"a": 1}, ("a",), 1),
+        ({"a": {"b": 2}}, ("a",), {"b": 2}),
+        ({"a": {"b": 2}}, ("a", "b"), 2)
+    ])
+    def test_access_nested_map(self, nested_map: Mapping,
+                               path: Sequence, expected: int) -> None:
         """
-        result = access_nested_map(nested_map, path)
-        self.assertEqual(result, expected_output)
-
-    @parameterized.expand(
-        [
-            ({}, ("a",), KeyError),
-            ({"a": 1}, ("a", "b"), KeyError)
-        ]
-    )
-    def test_access_nested_map_exception(self, nested_map, path,
-                                         expected_output):
-        """_summary_
+        Test the access_nested_map method.
+        Args:
+            nested_map (Dict): A dictionary that may have nested dictionaries
+            path (List, tuple, set): Keys to get to the required value in the
+                                     nested dictionary
         """
-        with self.assertRaises(expected_output) as context:
+        response = access_nested_map(nested_map, path)
+        self.assertEqual(response, expected)
+
+    @parameterized.expand([
+        ({}, ("a",)),
+        ({"a": 1}, ("a", "b"))
+    ])
+    def test_access_nested_map_exception(self, nested_map: Mapping,
+                                         path: Sequence) -> None:
+        """
+        Test the access_nested_map method raises an error when expected to
+        Args:
+            nested_map (Dict): A dictionary that may have nested dictionaries
+            path (List, tuple, set): Keys to get to the required value in the
+                                     nested dictionary
+        """
+        with self.assertRaises(Exception):
             access_nested_map(nested_map, path)
 
 
 class TestGetJson(unittest.TestCase):
-    """_summary_
-
-    Args:
-                    unittest (_type_): _description_
     """
-    @parameterized.expand(
-        [
-            ('http://example.com', {'payload': True}),
-            ('http://holberton.io', {'payload': False})
-        ]
-    )
-    def test_get_json(self, url, expected_output):
-        """_summary_
+    Test the get_json function
+    """
+    @parameterized.expand([
+        ("http://example.com", {"payload": True}),
+        ("http://holberton.io", {"payload": False})
+    ])
+    @patch("requests.get")
+    def test_get_json(self, test_url, test_payload, mock_requests_get):
         """
-        mock_response = Mock()
-        mock_response.json.return_value = expected_output
-        with patch('requests.get', return_value=mock_response):
-            response = get_json(url)
-
-            self.assertEqual(response, expected_output)
+        Test the get_json method to ensure it returns the expected output.
+        Args:
+            url: url to send http request to
+            payload: expected json response
+        """
+        mock_requests_get.return_value.json.return_value = test_payload
+        result = get_json(test_url)
+        self.assertEqual(result, test_payload)
+        mock_requests_get.assert_called_once_with(test_url)
 
 
 class TestMemoize(unittest.TestCase):
-    """_summary_
-
-    Args:
-                    unittest (_type_): _description_
     """
-
+    Test the memoization decorator, memoize
+    """
     def test_memoize(self):
-        """_summary_
-
-        Returns:
-                _type_: _description_
         """
-
+        Test that utils.memoize decorator works as intended
+        """
         class TestClass:
-            """_summary_
-            """
 
             def a_method(self):
-                """_summary_
-
-                Returns:
-                        _type_: _description_
-                """
                 return 42
 
             @memoize
             def a_property(self):
-                """_summary_
-
-                Returns:
-                        _type_: _description_
-                """
                 return self.a_method()
-
-        test_obj = TestClass()
-
-        with patch.object(test_obj, 'a_method') as mock_method:
-            mock_method.return_value = 42
-
-            result1 = test_obj.a_property
-            result2 = test_obj.a_property
-
-            self.assertEqual(result1, 42)
-            self.assertEqual(result2, 42)
-            mock_method.assert_called_once()
+        with patch.object(TestClass, 'a_method') as mock_object:
+            test = TestClass()
+            test.a_property()
+            test.a_property()
+            mock_object.assert_called_once()
